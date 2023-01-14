@@ -56,23 +56,6 @@ checkresiduals(fit)
 coeftest(fit, df = Inf, level = 0.95)
 
 
-# testes estatísticos
-residuos <- fit$residuals
-
-d1 <- Box.test(residuos, type = "Ljung-Box", lag = 15) # Ljung-Box 
-d2 <- ArchTest(residuos, lags = 15) # ARCH
-d3 <- jarque.bera.test(residuos) # Jarque-Bera
-
-#Tabela de resultados
-testes_di <- c(d1$method, d2$method, d3$method) 
-estt_di <- as.numeric(c(d1$statistic, d2$statistic, d3$statistic)) 
-valorp_di <- c(d1$p.value, d2$p.value, d3$p.value) 
-resultados_di <- cbind(estt_di, valorp_di) 
-rownames(resultados_di) <- testes_di 
-colnames(resultados_di) <- c("Estatística", "p") 
-print(resultados_di, digits = 4)
-
-
 # Gráfico final
 (ajustados <- fit$fitted)
 
