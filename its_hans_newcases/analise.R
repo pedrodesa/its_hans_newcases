@@ -1,11 +1,12 @@
 # Instalação e Carregamento dos Pacotes Necessários para a Aula -----------
 
-pacotes <- c("tseries",
-             "forecast",
-             "tidyverse",
-             "ggfortify",
-             "FinTS",
-             "lmtest")
+pacotes <- c("tseries",     # Gráficos e estatísticas
+             "forecast",    # Forecast, gráficos e testes
+             "tidyverse",   # Manipulação de dados
+             "ggfortify",   # Visualização de dados
+             "FinTS",       # Análises de ST
+             "lmtest",      # Teste de modelos
+             "broom")       # Resume estatísticas para tibble
 
 if(sum(as.numeric(!pacotes %in% installed.packages())) != 0){
   instalador <- pacotes[!pacotes %in% installed.packages()]
@@ -18,36 +19,46 @@ if(sum(as.numeric(!pacotes %in% installed.packages())) != 0){
 }
 
 
-# Dados 
+# Dados de série temporal de casos novos de hanseníase
 dados <- read.csv2(file = "dados_hanseniase.csv", header = T, sep = ';')
 
 
-# Série temporal
+# Gerar a série temporal anual/mensal
 ts_hans_newcases <- ts(dados, start = c(2018,1), frequency = 12)
 
-plot(ts_hans_newcases[,c("CASOS_NOVOS", "DEGRAU")], main = "")
 
+# Plotar a série temporal
 autoplot(ts_hans_newcases[,"CASOS_NOVOS"]) + 
   ggtitle("") + 
   xlab("Meses") + 
   ylab("Casos novos de hanseníase") + 
   ylim(0, 3000)
 
+autoplot(ts_hans_newcases[,"DEGRAU"]) + 
+  ggtitle("") + 
+  xlab("Meses") + 
+  ylab("Casos novos de hanseníase")
 
-# Modelo ARIMA
-y <- ts_hans_newcases[,"CASOS_NOVOS"]
-x <- ts_hans_newcases[,"DEGRAU"]
 
+# Modelo de erros ARIMA
+y <- ts_hans_newcases[,"CASOS_NOVOS"] # Variável dependente
+x <- ts_hans_newcases[,"DEGRAU"]      # Variável de intervenção (dummy: 0-1)
+
+# Modelo
 fit <- auto.arima(y, xreg = x)
 
 summary(fit)
 
+# Análise dos resíduos
 checkresiduals(fit)
 
+# Teste de significância
 coeftest(fit, df = Inf, level = 0.95)
 
 
 # testes estatísticos
+residuos <- fit$residuals
+
 d1 <- Box.test(residuos, type = "Ljung-Box", lag = 15) # Ljung-Box 
 d2 <- ArchTest(residuos, lags = 15) # ARCH
 d3 <- jarque.bera.test(residuos) # Jarque-Bera
@@ -62,15 +73,19 @@ colnames(resultados_di) <- c("Estatística", "p")
 print(resultados_di, digits = 4)
 
 
-# Gráfico
+# Gráfico final
 (ajustados <- fit$fitted)
 
 ts.plot(ts_hans_newcases[,"CASOS_NOVOS"], ajustados, lty = c(1,1), type = "l", 
         lwd = c(1,2), col = c(1, "red"), xlab="Mês/ano de diagnóstico", 
-        ylab = "Número de casos novos", ylim = c(0, 3000)) 
+        ylab = "Número de casos novos", ylim = c(0, 3000), main = "ARIMA(0,0,0)(1,0,0)[12] errors") 
 legend("bottomleft", col = c("black", "red"), 
        legend = c("Observado", "Ajustado"), lty = c( 1, 1), 
        lwd = c(1,1,1), cex = , bty="n") 
-abline(v = 2020.27, col = "darkorchid4", lty = 2, lwd = 2) 
+abline(v = 2020.27, col = "grey", lty = 2, lwd = 2) 
 text(2020.40,2500,"Pandemia COVID-19", adj = c(0,1), col = "gray")
 
+
+# Apresnetação de tabela
+tidy(fit)
+glance(fit)
